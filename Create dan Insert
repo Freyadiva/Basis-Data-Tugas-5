@@ -1,0 +1,110 @@
+CREATE TABLE dosen (
+  Nip varchar(12) NOT NULL,
+  Nama_Dosen varchar(25) NOT NULL,
+  PRIMARY KEY (Nip)
+);
+
+INSERT INTO dosen (Nip, Nama_Dosen)
+VALUES 
+('12010001', 'Doni Wijaya'),
+('12010002', 'Dewi Lestari'),
+('12010003', 'Risma Melati');
+
+
+CREATE TABLE mahasiswa (
+  Nim VARCHAR(10) NOT NULL,
+  Nama_Mhs VARCHAR(30) NOT NULL,
+  Tgl_Lahir DATE NOT NULL,
+  Alamat VARCHAR(50) NOT NULL,
+  Jenis_Kelamin ENUM('Laki-laki', 'Perempuan') NOT NULL,
+  IPK DECIMAL(4,2),  -- DECIMAL(10,2) terlalu besar untuk IPK
+  PRIMARY KEY (Nim)
+);
+
+
+INSERT INTO mahasiswa (Nim, Nama_Mhs, Tgl_Lahir, Alamat, Jenis_Kelamin, IPK)
+VALUES 
+('2023071001', 'Herawati', '2004-10-14', 'Jl. Watu Mujur No.10', 'Perempuan', NULL),
+('2023071002', 'Patricia Panjaitan', '2005-04-01', 'Jl. Gebang Lor No.10', 'Perempuan', NULL);
+
+DROP TABLE mahasiswa;
+
+SELECT*FROM mahasiswa;
+
+CREATE TABLE matakuliah (
+  Kode_MK varchar(6) NOT NULL,
+  Nama_MK varchar(40) NOT NULL,
+  Sks int(2) NOT NULL,
+  PRIMARY KEY (Kode_MK)
+); 
+
+DROP TABLE matakuliah;
+
+INSERT INTO matakuliah (Kode_MK, Nama_MK, Sks)
+VALUES 
+('INF101', 'Pengenalan Komputasi', 3),
+('INF102', 'Pengenalan Sistem Digital', 3),
+('INF103', 'Pengenalan Teknologi Informasi', 3),
+('INF104', 'Kalkulus', 4),
+('MKWP', 'Bahasa Indonesia', 3);
+
+SELECT * FROM matakuliah;
+
+CREATE TABLE perkuliahan (
+  Nim varchar(10) DEFAULT NULL,
+  Kode_MK varchar(7) DEFAULT NULL,
+  Nip varchar(12) DEFAULT NULL,
+  Kehadiran decimal(6,2), 
+  Nilai_Bobot char(1) NULL,
+  Nilai_Angka decimal(6,2), 
+  Poin varchar(1),
+  KEY Nip (Nip),
+  KEY Nim (Nim),
+  KEY Kode_MK (Kode_MK),
+  CONSTRAINT perkuliahan_ibfk_1 FOREIGN KEY (Nip) REFERENCES dosen (Nip) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT perkuliahan_ibfk_2 FOREIGN KEY (Nim) REFERENCES mahasiswa (Nim) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT perkuliahan_ibfk_3 FOREIGN KEY (Kode_MK) REFERENCES matakuliah (Kode_MK) ON DELETE CASCADE ON UPDATE CASCADE
+); 
+
+INSERT INTO perkuliahan (Nim, Kode_Mk, Kehadiran, Nilai_Angka)
+VALUES
+('2023071001', 'INF101', 90, 93.59),
+('2023071001', 'INF102', 65, 82.71),
+('2023071001', 'INF103', 75, 90.00),
+('2023071001', 'INF104', 70, 85.00),
+('2023071001', 'MKWP', 80, 75.00);
+
+UPDATE perkuliahan 
+SET Nilai_Angka = Nilai_Angka * 0.65 
+WHERE Kehadiran < 75;
+
+UPDATE perkuliahan
+SET Nilai_Bobot = CASE
+    WHEN Nilai_Angka BETWEEN 91 AND 100 THEN 'A'
+    WHEN Nilai_Angka BETWEEN 81 AND 90 THEN 'B'
+    WHEN Nilai_Angka BETWEEN 71 AND 80 THEN 'C'
+    WHEN Nilai_Angka BETWEEN 61 AND 70 THEN 'D'
+    ELSE 'E'
+END;
+
+UPDATE perkuliahan
+SET Poin = CASE
+    WHEN Nilai_Bobot = 'A' THEN 4
+    WHEN Nilai_Bobot = 'B' THEN 3
+    WHEN Nilai_Bobot = 'C' THEN 2
+    WHEN Nilai_Bobot = 'D' THEN 1
+    WHEN Nilai_Bobot = 'E' THEN 0
+    ELSE NULL
+END;
+
+UPDATE mahasiswa
+SET IPK = (SELECT SUM(SKS * Poin) / SUM(SKS)
+           FROM perkuliahan 
+           JOIN matakuliah ON perkuliahan.Kode_MK = matakuliah.Kode_MK
+           WHERE perkuliahan.Nim = mahasiswa.Nim
+           GROUP BY perkuliahan.Nim);
+
+
+SELECT*FROM perkuliahan;
+ 
+DROP TABLE perkuliahan;
